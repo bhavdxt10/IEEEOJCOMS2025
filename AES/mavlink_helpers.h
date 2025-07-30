@@ -268,7 +268,7 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t* msg, 
 		buf[9] = (msg->msgid >> 16) & 0xFF;
 	}
 #ifdef ENCRYPTION	
-	if (msg->msgid != 0 && msg->msgid != 10000 && msg->msgid != 10010)
+	if (msg->msgid != 0)
 	{
             uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
            
@@ -373,7 +373,7 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
             buf[9] = (msgid >> 16) & 0xFF;
         }
 #ifdef ENCRYPTION
-	if (msgid != 0 && msgid != 10000 && msgid != 10010)
+	if (msgid != 0)
 	{
             uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
 
@@ -813,7 +813,7 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t* rxmsg,
 				}
 			}
 #ifdef ENCRYPTION
-			if (rxmsg->msgid != 0 && rxmsg->msgid != 10000 && rxmsg->msgid != 10010)
+			if (rxmsg->msgid != 0)
 			{
             			uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
             			

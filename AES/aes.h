@@ -14,19 +14,8 @@ namespace mavlink {
 #include <string.h> // CBC mode, for memset
 #include <stdint.h>
 
-// #define the macros below to 1/0 to enable/disable the mode of operation.
-//
-// CBC enables AES encryption in CBC-mode of operation.
 // CTR enables encryption in counter-mode.
-// ECB enables the basic ECB 16-byte block algorithm. All can be enabled simultaneously.
-// The #ifndef-guard allows it to be configured before #include'ing or at compile time.
-#define CBC 1
-#define ECB 1
 #define CTR 1
-//#ifndef CTR
-  //#define CTR 1
-//#endif
-
 
 #define AES128 1
 //#define AES192 1
@@ -240,7 +229,7 @@ MAVLINK_HELPER void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
 {
   KeyExpansion(ctx->RoundKey, key);
 }
-#if (defined(CBC) && (CBC == 1)) || (defined(CTR) && (CTR == 1))
+#if (defined(CTR) && (CTR == 1))
 MAVLINK_HELPER void AES_init_ctx_iv(struct AES_ctx* ctx, const uint8_t* key, const uint8_t* iv)
 {
   KeyExpansion(ctx->RoundKey, key);
@@ -355,71 +344,6 @@ static uint8_t Multiply(uint8_t x, uint8_t y)
 
 #endif
 
-#if (defined(CBC) && CBC == 1) || (defined(ECB) && ECB == 1)
-// MixColumns function mixes the columns of the state matrix.
-// The method used to multiply may be difficult to understand for the inexperienced.
-// Please use the references to gain more information.
-static void InvMixColumns(state_t* state)
-{
-  int i;
-  uint8_t a, b, c, d;
-  for (i = 0; i < 4; ++i)
-  { 
-    a = (*state)[i][0];
-    b = (*state)[i][1];
-    c = (*state)[i][2];
-    d = (*state)[i][3];
-
-    (*state)[i][0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
-    (*state)[i][1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
-    (*state)[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
-    (*state)[i][3] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
-  }
-}
-
-
-// The SubBytes Function Substitutes the values in the
-// state matrix with values in an S-box.
-static void InvSubBytes(state_t* state)
-{
-  uint8_t i, j;
-  for (i = 0; i < 4; ++i)
-  {
-    for (j = 0; j < 4; ++j)
-    {
-      (*state)[j][i] = getSBoxInvert((*state)[j][i]);
-    }
-  }
-}
-
-static void InvShiftRows(state_t* state)
-{
-  uint8_t temp;
-
-  // Rotate first row 1 columns to right  
-  temp = (*state)[3][1];
-  (*state)[3][1] = (*state)[2][1];
-  (*state)[2][1] = (*state)[1][1];
-  (*state)[1][1] = (*state)[0][1];
-  (*state)[0][1] = temp;
-
-  // Rotate second row 2 columns to right 
-  temp = (*state)[0][2];
-  (*state)[0][2] = (*state)[2][2];
-  (*state)[2][2] = temp;
-
-  temp = (*state)[1][2];
-  (*state)[1][2] = (*state)[3][2];
-  (*state)[3][2] = temp;
-
-  // Rotate third row 3 columns to right
-  temp = (*state)[0][3];
-  (*state)[0][3] = (*state)[1][3];
-  (*state)[1][3] = (*state)[2][3];
-  (*state)[2][3] = (*state)[3][3];
-  (*state)[3][3] = temp;
-}
-#endif // #if (defined(CBC) && CBC == 1) || (defined(ECB) && ECB == 1)
 
 // Cipher is the main function that encrypts the PlainText.
 static void Cipher(state_t* state, const uint8_t* RoundKey)
@@ -446,102 +370,6 @@ static void Cipher(state_t* state, const uint8_t* RoundKey)
   // Add round key to last round
   AddRoundKey(Nr, state, RoundKey);
 }
-
-#if (defined(CBC) && CBC == 1) || (defined(ECB) && ECB == 1)
-static void InvCipher(state_t* state, const uint8_t* RoundKey)
-{
-  uint8_t round = 0;
-
-  // Add the First round key to the state before starting the rounds.
-  AddRoundKey(Nr, state, RoundKey);
-
-  // There will be Nr rounds.
-  // The first Nr-1 rounds are identical.
-  // These Nr rounds are executed in the loop below.
-  // Last one without InvMixColumn()
-  for (round = (Nr - 1); ; --round)
-  {
-    InvShiftRows(state);
-    InvSubBytes(state);
-    AddRoundKey(round, state, RoundKey);
-    if (round == 0) {
-      break;
-    }
-    InvMixColumns(state);
-  }
-
-}
-#endif // #if (defined(CBC) && CBC == 1) || (defined(ECB) && ECB == 1)
-
-/*****************************************************************************/
-/* Public functions:                                                         */
-/*****************************************************************************/
-#if defined(ECB) && (ECB == 1)
-
-
-MAVLINK_HELPER void AES_ECB_encrypt(const struct AES_ctx* ctx, uint8_t* buf)
-{
-  // The next function call encrypts the PlainText with the Key using AES algorithm.
-  Cipher((state_t*)buf, ctx->RoundKey);
-}
-
-MAVLINK_HELPER void AES_ECB_decrypt(const struct AES_ctx* ctx, uint8_t* buf)
-{
-  // The next function call decrypts the PlainText with the Key using AES algorithm.
-  InvCipher((state_t*)buf, ctx->RoundKey);
-}
-
-
-#endif // #if defined(ECB) && (ECB == 1)
-
-
-
-
-
-#if defined(CBC) && (CBC == 1)
-
-
-static void XorWithIv(uint8_t* buf, const uint8_t* Iv)
-{
-  uint8_t i;
-  for (i = 0; i < AES_BLOCKLEN; ++i) // The block in AES is always 128bit no matter the key size
-  {
-    buf[i] ^= Iv[i];
-  }
-}
-
-MAVLINK_HELPER void AES_CBC_encrypt_buffer(struct AES_ctx *ctx, uint8_t* buf, uint32_t length)
-{
-  uintptr_t i;
-  uint8_t *Iv = ctx->Iv;
-  for (i = 0; i < length; i += AES_BLOCKLEN)
-  {
-    XorWithIv(buf, Iv);
-    Cipher((state_t*)buf, ctx->RoundKey);
-    Iv = buf;
-    buf += AES_BLOCKLEN;
-  }
-  /* store Iv in ctx for next call */
-  memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
-}
-
-MAVLINK_HELPER void AES_CBC_decrypt_buffer(struct AES_ctx* ctx, uint8_t* buf,  uint32_t length)
-{
-  uintptr_t i;
-  uint8_t storeNextIv[AES_BLOCKLEN];
-  for (i = 0; i < length; i += AES_BLOCKLEN)
-  {
-    memcpy(storeNextIv, buf, AES_BLOCKLEN);
-    InvCipher((state_t*)buf, ctx->RoundKey);
-    XorWithIv(buf, ctx->Iv);
-    memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
-    buf += AES_BLOCKLEN;
-  }
-
-}
-
-#endif // #if defined(CBC) && (CBC == 1)
-
 
 
 #if defined(CTR) && (CTR == 1)
