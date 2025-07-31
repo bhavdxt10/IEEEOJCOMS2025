@@ -4,3 +4,6 @@
 [submodule "external/qgroundcontrol"]
 	path = external/qgroundcontrol
 	url = https://github.com/mavlink/qgroundcontrol.git
+[submodule "external/Dieharder-statistical-test"]
+	path = external/Dieharder-statistical-test
+	url = https://github.com/GINARTeam/Dieharder-statistical-test.git
