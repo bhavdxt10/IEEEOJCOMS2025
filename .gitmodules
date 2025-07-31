@@ -7,3 +7,6 @@
 [submodule "external/Dieharder-statistical-test"]
 	path = external/Dieharder-statistical-test
 	url = https://github.com/GINARTeam/Dieharder-statistical-test.git
+[submodule "external/NIST-Statistical-Test-Suite"]
+	path = external/NIST-Statistical-Test-Suite
+	url = https://github.com/terrillmoore/NIST-Statistical-Test-Suite.git
