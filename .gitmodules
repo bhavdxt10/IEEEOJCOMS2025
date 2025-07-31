@@ -1,0 +1,3 @@
+[submodule "external/ardupilot"]
+	path = external/ardupilot
+	url = https://github.com/ArduPilot/ardupilot.git
