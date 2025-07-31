@@ -3,7 +3,7 @@ We propose a lightweight cipher to secure MAVLink communications in UAVs, addres
 
 #Drone Components
 
-This repository contains components used in custom build drone in the lab.
+This repository includes hardware components integrated into a custom UAV platform assembled and tested in the lab.
 
 ## References
 
@@ -11,4 +11,5 @@ This repository contains components used in custom build drone in the lab.
 2. [Ublox Here3+ GNSS](https://docs.cubepilot.org/user-guides/here-3/here-3-manual)
 3. [Radiomaster boxer radio controller](https://cdn.shopify.com/s/files/1/0609/8324/7079/files/BOXER_1.pdf?v=1736839329)
 4. [Holybro Sik 433MHz telemetry module](https://ardupilot.org/copter/docs/common-sik-telemetry-radio.html)
+
 
